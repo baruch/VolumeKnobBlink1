@@ -1,0 +1,9 @@
+[submodule "lib/Button"]
+	path = lib/Button
+	url = https://github.com/hamspot/Button.git
+[submodule "lib/WS2812"]
+	path = lib/WS2812
+	url = https://github.com/emgoz/WS2812
+[submodule "lib/Rotary"]
+	path = lib/Rotary
+	url = https://github.com/brianlow/Rotary
