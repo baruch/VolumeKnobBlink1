@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "blink1hid.h"
+#include "rgb_led.h"
 
 #define HID_REPORTID_CONSUMERCONTROL 4
 
@@ -34,13 +35,11 @@ static const uint8_t _hidMultiReportDescriptorConsumer[] PROGMEM = {
         0xC0 /* end collection */
 };
 
-Blink1HID::Blink1HID(int led_pin) : PluggableUSBModule(1, 1, epType),
-                   protocol(HID_REPORT_PROTOCOL), idle(1),
-                   led(1)
+Blink1HID::Blink1HID(): PluggableUSBModule(1, 1, epType),
+                   protocol(HID_REPORT_PROTOCOL), idle(1)
 {
         epType[0] = EP_TYPE_INTERRUPT_IN;
         PluggableUSB().plug(this);
-        led.setOutput(led_pin);
 }
 
 int Blink1HID::getInterface(uint8_t* interfaceCount)
@@ -155,17 +154,6 @@ bool Blink1HID::setup(USBSetup& setup)
         return false;
 }
 
-void Blink1HID::rgb_setCurr(uint8_t *buf)
-{
-        led.setRGB(0, buf[0], buf[1], buf[2]);
-        led.sync();
-}
-
-void Blink1HID::rgb_setDest(uint8_t *buf, uint16_t steps)
-{
-        rgb_setCurr(buf);
-}
-
 void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
 {
     uint8_t* msgbufp = msgbuf+1;  // skip over report id
@@ -177,7 +165,7 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
     // where time 't' is a number of 10msec ticks
     //
     if (cmd == 'c' ) {
-        uint8_t* c = msgbufp+1; // msgbuf[1],msgbuf[2],msgbuf[3]
+        rgb_t* c = (rgb_t*)(msgbufp+1); // msgbuf[1],msgbuf[2],msgbuf[3]
         uint16_t t = (msgbufp[4] << 8) | msgbufp[5]; // msgbuf[4],[5]
         playing = 0;
         rgb_setDest( c, t );
@@ -185,7 +173,7 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
     // set RGB color immediately  - {'n', r,g,b, 0,0,0,0 }
     //
     else if( cmd == 'n' ) {
-        uint8_t* c = (msgbufp+1);
+        rgb_t* c = (rgb_t*)(msgbufp+1);
         rgb_setDest( c, 0 );
         rgb_setCurr( c );
     }

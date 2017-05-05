@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include <PluggableUSB.h>
 
-#include <WS2812.h>
 #include "HID.h"
 #include "HID-Settings.h"
 
@@ -453,7 +452,6 @@ private:
 	uint8_t protocol;
 	uint8_t idle;
 
-	WS2812 led;
 	int playing;
 
 	HID_ConsumerControlReport_Data_t _report;
@@ -467,11 +465,9 @@ protected:
 	int SendReport(uint8_t id, const void* data, int len);
 
 	void handleMessage(uint8_t *msgbuf, uint16_t length);
-	void rgb_setCurr(uint8_t *buf);
-	void rgb_setDest(uint8_t *buf, uint16_t steps);
 
 public:
-    Blink1HID(int led_pin);
+    Blink1HID();
     void wakeupHost(void);
 
 	inline void begin(void) { end(); }
