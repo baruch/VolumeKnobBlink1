@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include "blink1hid.h"
 
-#define Serial Serial1
-
 #define HID_REPORTID_CONSUMERCONTROL 4
 
 static const uint8_t hidReportDescriptorBlink1[] PROGMEM = {
@@ -147,9 +145,6 @@ bool Blink1HID::setup(USBSetup& setup)
                         if (length > USB_EP_SIZE)
                                 return false;
 
-                        Serial.print("set report ");
-                        Serial.println(length);
-
                         uint8_t data[length];
                         USB_RecvControl(data, length);
                         handleMessage(data, length);
@@ -162,10 +157,6 @@ bool Blink1HID::setup(USBSetup& setup)
 
 void Blink1HID::rgb_setCurr(uint8_t *buf)
 {
-        Serial.println(buf[0]);
-        Serial.println(buf[1]);
-        Serial.println(buf[2]);
-
         led.setRGB(0, buf[0], buf[1], buf[2]);
         led.sync();
 }
@@ -177,22 +168,15 @@ void Blink1HID::rgb_setDest(uint8_t *buf, uint16_t steps)
 
 void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
 {
-        Serial.println("report");
-        Serial.println(*msgbuf);
-
     uint8_t* msgbufp = msgbuf+1;  // skip over report id
 
     uint8_t cmd = msgbufp[0];
-
-    Serial.print("cmd: ");
-    Serial.println(cmd);
 
     // fade to RGB color
     // command {'c', r,g,b, th,tl, 0,0 } = fade to RGB color over time t
     // where time 't' is a number of 10msec ticks
     //
     if (cmd == 'c' ) {
-            Serial.println("color fade");
         uint8_t* c = msgbufp+1; // msgbuf[1],msgbuf[2],msgbuf[3]
         uint16_t t = (msgbufp[4] << 8) | msgbufp[5]; // msgbuf[4],[5]
         playing = 0;
@@ -201,7 +185,6 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
     // set RGB color immediately  - {'n', r,g,b, 0,0,0,0 }
     //
     else if( cmd == 'n' ) {
-            Serial.println("color now");
         uint8_t* c = (msgbufp+1);
         rgb_setDest( c, 0 );
         rgb_setCurr( c );
