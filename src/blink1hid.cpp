@@ -35,7 +35,24 @@ static const uint8_t _hidMultiReportDescriptorConsumer[] PROGMEM = {
         0xC0 /* end collection */
 };
 
+// serial num is represented as hex ascii on USB, ==> 8 bytes
+patternline_t ee_pattern[PATTERN_MAX]  EEMEM = {
+    { { 0xff, 0x00, 0x00 },  50 }, // 0
+    { { 0x00, 0x00, 0x00 },  50 }, // 1
+    { { 0x00, 0xff, 0x00 },  50 }, // 2
+    { { 0x00, 0x00, 0x00 },  50 }, // 3
+    { { 0x00, 0x00, 0xff },  50 }, // 4
+    { { 0x00, 0x00, 0x00 },  50 }, // 5
+    { { 0xff, 0xff, 0xff }, 100 }, // 6
+    { { 0x00, 0x00, 0x00 }, 100 }, // 7
+    { { 0xff, 0x00, 0xff },  50 }, // 8
+    { { 0xff, 0xff, 0x00 },  50 }, // 9
+    { { 0x00, 0xff, 0xff },  50 }, // 10
+    { { 0x00, 0x00, 0x00 }, 100 }, // 11
+};
+
 Blink1HID::Blink1HID(): PluggableUSBModule(1, 1, epType),
+                   usbConnected(0),
                    protocol(HID_REPORT_PROTOCOL), idle(1)
 {
         epType[0] = EP_TYPE_INTERRUPT_IN;
@@ -56,6 +73,11 @@ int Blink1HID::getInterface(uint8_t* interfaceCount)
 
 int Blink1HID::getDescriptor(USBSetup& setup)
 {
+        if (!usbConnected && playing)
+                off();
+
+        usbConnected = 1;
+
         // Check if this is a HID Class Descriptor request
         if (setup.bmRequestType != REQUEST_DEVICETOHOST_STANDARD_INTERFACE) { return 0; }
         if (setup.wValueH != HID_REPORT_DESCRIPTOR_TYPE) { return 0; }
@@ -181,16 +203,13 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
     // play/pause, with position  - {'p', p, 0,0, 0,0,0,0}
     //
     else if( cmd == 'p' ) {
-#if 0
         playing = msgbufp[1];
         playpos = msgbufp[2];
         startPlaying();
-#endif
     }
     // write color pattern entry - {'P', r,g,b, th,tl, p, 0}
     //
     else if( cmd == 'P' ) {
-#if 0
         // was doing this copy with a cast, but broke it out for clarity
         patternline_t ptmp;
         ptmp.color.r = msgbufp[1];
@@ -198,18 +217,16 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
         ptmp.color.b = msgbufp[3];
         ptmp.dmillis = ((uint16_t)msgbufp[4] << 8) | msgbufp[5];
         uint8_t p = msgbufp[6];
-        if( p >= patt_max ) p = 0;
+        if( p >= PATTERN_MAX ) p = 0;
         // save pattern line to RAM
         memcpy( &pattern[p], &ptmp, sizeof(patternline_t) );
         eeprom_write_block( &pattern[p], &ee_pattern[p], sizeof(patternline_t));
-#endif
     }
     // read color pattern entry - {'R', 0,0,0, 0,0, p,0}
     //
     else if( cmd == 'R' ) {
-#if 0
         uint8_t p = msgbufp[6];
-        if( p >= patt_max ) p = 0;
+        if( p >= PATTERN_MAX ) p = 0;
         patternline_t ptmp ;
         eeprom_read_block( &ptmp, &ee_pattern[p], sizeof(patternline_t));
         msgbuf[2] = ptmp.color.r;
@@ -217,7 +234,6 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
         msgbuf[4] = ptmp.color.b;
         msgbuf[5] = (ptmp.dmillis >> 8);
         msgbuf[6] = (ptmp.dmillis & 0xff);
-#endif
     }
     // read eeprom byte - { 'e', addr, 0,0, 0,0,0,0}
     //
@@ -261,9 +277,39 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
     else if( cmd == '!' ) { // testing testing
         msgbufp[0] = 0x55;
         msgbufp[1] = 0xAA;
-        msgbufp[2] = 0; //usbHasBeenSetup;
+        msgbufp[2] = usbConnected;
     }
     else {
 
     }
+}
+
+void Blink1HID::startPlaying()
+{
+        pattern_update_next = millis();
+        eeprom_read_block(&pattern, &ee_pattern, sizeof(patternline_t) * PATTERN_MAX);
+}
+
+void Blink1HID::off()
+{
+        playing = 0;
+        rgb_t c = {0, 0, 0};
+        rgb_setCurr(&c);
+}
+
+void Blink1HID::updateLeds()
+{
+        long now = millis();
+
+        if (playing) {
+                if (now - pattern_update_next > 0) {
+                        cplay = pattern[playpos].color;
+                        tplay = pattern[playpos].dmillis;
+                        rgb_setDest(&cplay, tplay);
+                        playpos++;
+                        if (playpos == PATTERN_MAX)
+                                playpos = 0;
+                        pattern_update_next += tplay*10;
+                }
+        }
 }

@@ -5,9 +5,12 @@
 
 #include "HID.h"
 #include "HID-Settings.h"
+#include "rgb_led.h"
 
 #define blink1_ver_major 2
 #define blink1_ver_minor 3
+
+#define PATTERN_MAX 12
 
 enum ConsumerKeycode : uint16_t {
 	// Some keys might only work with linux
@@ -449,10 +452,17 @@ class Blink1HID : public PluggableUSBModule
 private:
 	uint8_t epType[1];
 
+	uint8_t usbConnected;
+
 	uint8_t protocol;
 	uint8_t idle;
 
-	int playing;
+	rgb_t cplay;
+	uint16_t tplay;
+	uint8_t playing;
+	uint8_t playpos;
+	long pattern_update_next;
+	patternline_t pattern[PATTERN_MAX];
 
 	HID_ConsumerControlReport_Data_t _report;
 protected:
@@ -466,14 +476,19 @@ protected:
 
 	void handleMessage(uint8_t *msgbuf, uint16_t length);
 
+	void startPlaying();
+	void off();
+
 public:
     Blink1HID();
     void wakeupHost(void);
 
-	inline void begin(void) { end(); }
+	inline void begin(void) { end(); if (!usbConnected) startPlaying(); }
 	inline void end(void) { memset(&_report, 0, sizeof(_report)); sendReportConsumer(); }
 	inline void write(ConsumerKeycode m) { press(m); release(m); }
 	inline void press(ConsumerKeycode m) { for (uint8_t i = 0; i < 4; i++) { if (_report.keys[i] == HID_CONSUMER_UNASSIGNED) { _report.keys[i] = m; break; } }; sendReportConsumer(); }
 	inline void release(ConsumerKeycode m) { for (uint8_t i = 0; i < 4; i++) { if (_report.keys[i] == m) { _report.keys[i] = HID_CONSUMER_UNASSIGNED; } } sendReportConsumer(); }
 	inline void releaseAll(void) { end(); }
+
+	void updateLeds();
 };

@@ -14,6 +14,11 @@ typedef struct {
 	int b;
 } rgbint_t;
 
+typedef struct {
+    rgb_t color;
+    uint16_t dmillis; // hundreths of a sec
+} patternline_t;
+
 void rgb_init(int led_pin);
 void rgb_updateStep(void);
 void rgb_setCurr(rgb_t *newcolor);

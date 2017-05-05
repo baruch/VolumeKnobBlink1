@@ -34,6 +34,8 @@ void setup()
 
 void loop()
 {
+        blink1.updateLeds();
+
         long now = millis();
         if (now - last_led_update_ms >= 10) {
                 last_led_update_ms = now;
