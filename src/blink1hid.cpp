@@ -75,14 +75,15 @@ int Blink1HID::getDescriptor(USBSetup& setup)
 
 uint8_t Blink1HID::getShortName(char *name)
 {
-        name[0] = 'N';
-        name[1] = 'o';
-        name[2] = 'n';
-        name[3] = 't';
-        name[4] = 'h';
-        name[5] = 'n';
-        name[6] = 'g';
-        return 7;
+        name[0] = '0';
+        name[1] = '1';
+        name[2] = '0';
+        name[3] = '0';
+        name[4] = '0';
+        name[5] = '0';
+        name[6] = '1';
+        name[7] = '0';
+        return 8;
 }
 
 int Blink1HID::sendReportConsumer()
