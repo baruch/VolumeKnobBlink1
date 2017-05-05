@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include "blink1hid.h"
-#include "HID.h"
-#include "HID-Settings.h"
 
 #define Serial Serial1
+
+#define HID_REPORTID_CONSUMERCONTROL 4
 
 static const uint8_t hidReportDescriptorBlink1[] PROGMEM = {
     0x06, 0x00, 0xff,              // USAGE_PAGE (Generic Desktop)
@@ -19,6 +19,22 @@ static const uint8_t hidReportDescriptorBlink1[] PROGMEM = {
     0xc0                           // END_COLLECTION
 };
 
+static const uint8_t _hidMultiReportDescriptorConsumer[] PROGMEM = {
+        /* Consumer Control (Sound/Media keys) */
+        0x05, 0x0C,                                                                     /* usage page (consumer device) */
+        0x09, 0x01,                                                             /* usage -- consumer control */
+        0xA1, 0x01,                                                             /* collection (application) */
+        0x85, HID_REPORTID_CONSUMERCONTROL,             /* report id */
+        /* 4 Media Keys */
+        0x15, 0x00,                                                             /* logical minimum */
+        0x26, 0xFF, 0x03,                                                       /* logical maximum (3ff) */
+        0x19, 0x00,                                                             /* usage minimum (0) */
+        0x2A, 0xFF, 0x03,                                                       /* usage maximum (3ff) */
+        0x95, 0x04,                                                             /* report count (4) */
+        0x75, 0x10,                                                             /* report size (16) */
+        0x81, 0x00,                                                             /* input */
+        0xC0 /* end collection */
+};
 
 Blink1HID::Blink1HID(int led_pin) : PluggableUSBModule(1, 1, epType),
                    protocol(HID_REPORT_PROTOCOL), idle(1),
@@ -34,7 +50,7 @@ int Blink1HID::getInterface(uint8_t* interfaceCount)
         *interfaceCount += 1; // uses 1
         HIDDescriptor hidInterface = {
                 D_INTERFACE(pluggedInterface, 1, USB_DEVICE_CLASS_HUMAN_INTERFACE, HID_SUBCLASS_NONE, HID_PROTOCOL_NONE),
-                D_HIDREPORT(sizeof(hidReportDescriptorBlink1)), // TODO: to add keyboard, total the size of the descriptors
+                D_HIDREPORT(sizeof(hidReportDescriptorBlink1) + sizeof(_hidMultiReportDescriptorConsumer)),
                 D_ENDPOINT(USB_ENDPOINT_IN(pluggedEndpoint), USB_ENDPOINT_TYPE_INTERRUPT, USB_EP_SIZE, 0x01)
         };
         return USB_SendControl(0, &hidInterface, sizeof(hidInterface));
@@ -56,7 +72,7 @@ int Blink1HID::getDescriptor(USBSetup& setup)
 
         int total = 0;
         total += USB_SendControl(TRANSFER_PGM, hidReportDescriptorBlink1, sizeof(hidReportDescriptorBlink1));
-        // TODO: To add keyboard send here the hid report for it, add it to total
+        total += USB_SendControl(TRANSFER_PGM, _hidMultiReportDescriptorConsumer, sizeof(_hidMultiReportDescriptorConsumer));
         return total;
 }
 
@@ -72,7 +88,11 @@ uint8_t Blink1HID::getShortName(char *name)
         return 7;
 }
 
-/*
+int Blink1HID::sendReportConsumer()
+{
+        return SendReport(HID_REPORTID_CONSUMERCONTROL, &_report, sizeof(_report));
+}
+
 int Blink1HID::SendReport(uint8_t id, const void* data, int len)
 {
         auto ret = USB_Send(pluggedEndpoint, &id, 1);
@@ -81,7 +101,6 @@ int Blink1HID::SendReport(uint8_t id, const void* data, int len)
         if (ret2 < 0) return ret2;
         return ret + ret2;
 }
-*/
 
 bool Blink1HID::setup(USBSetup& setup)
 {

@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <Rotary.h>
 #include <Button.h>
-#include <HID-Project.h>
 #include <WS2812.h>
 #include <blink1hid.h>
 
@@ -13,13 +12,12 @@
 static Rotary knob(PIN_ROTARY_ENCODER_A, PIN_ROTARY_ENCODER_B);
 static Button knob_switch;
 static Blink1HID blink1(PIN_WS2812_LED);
-#define hidKeyboard Consumer
 
 
 void setup()
 {
         // Start keyboard emulation
-        //hidKeyboard.begin();
+        blink1.begin();
 
         Serial1.begin(115200);
 
@@ -35,13 +33,13 @@ void loop()
 
         if (knob_change == DIR_CW) {
                 // Increase volume
-                //hidKeyboard.write(MEDIA_VOLUME_UP);
+                blink1.write(MEDIA_VOLUME_UP);
         } else if (knob_change == DIR_CCW) {
                 // Decrease volume
-                //hidKeyboard.write(MEDIA_VOLUME_DOWN);
+                blink1.write(MEDIA_VOLUME_DOWN);
         }
 
         if (knob_switch.isPressed()) {
-                //hidKeyboard.write(MEDIA_VOLUME_MUTE);
+                blink1.write(MEDIA_VOLUME_MUTE);
         }
 }
