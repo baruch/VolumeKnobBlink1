@@ -222,22 +222,18 @@ void Blink1HID::handleMessage(uint8_t *msgbuf, uint16_t length)
     // read eeprom byte - { 'e', addr, 0,0, 0,0,0,0}
     //
     else if( cmd == 'e' ) {
-#if 0
         uint8_t addr = msgbufp[1];
         uint8_t val = eeprom_read_byte( (uint8_t*)(uint16_t)addr ); // dumb
         msgbufp[2] = val;  // put read byte in output buff
-#endif
     }
     // write eeprom byte - { 'E', addr,val, 0, 0,0,0,0}
     //
     else if( cmd == 'E' ) {
-#if 0
         uint8_t addr = msgbufp[1];
         uint8_t val  = msgbufp[2];
         if( addr > 0 ) {  // don't let overwrite osccal value
             eeprom_write_byte( (uint8_t*)(uint16_t)addr, val ); // dumb
         }
-#endif
     }
     // servermode tickle - {'D', {1/0},th,tl,  {1/0},0, 0,0 }
     //
